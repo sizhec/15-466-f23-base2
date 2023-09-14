@@ -7,7 +7,7 @@ Design: A simple game where you need to dodge the ball.
 
 Screen Shot:
 
-![Screen Shot](screenshot.png)
+![Screen Shot](screenshot1.png)
 
 How To Play:
 
