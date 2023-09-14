@@ -98,9 +98,13 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			reset.downs += 1;
 			reset.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_s) {
-			down.downs += 1;
-			down.pressed = true;
+		} else if (evt.key.keysym.sym == SDLK_j) {
+			bl.downs += 1;
+			bl.pressed = true;
+			return true;
+		}else if (evt.key.keysym.sym == SDLK_k) {
+			br.downs += 1;
+			br.pressed = true;
 			return true;
 		}
 	} else if (evt.type == SDL_KEYUP) {
@@ -113,8 +117,11 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		} else if (evt.key.keysym.sym == SDLK_r) {
 			reset.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_s) {
-			down.pressed = false;
+		} else if (evt.key.keysym.sym == SDLK_j) {
+			bl.pressed = false;
+			return true;
+		} else if (evt.key.keysym.sym == SDLK_k) {
+			br.pressed = false;
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
@@ -198,6 +205,19 @@ void PlayMode::update(float elapsed) {
 		}
 
 		if (!lost){
+			energy+= elapsed;
+			canDash = (energy > 5.0f);
+			
+			if (bl.pressed && canDash){
+				(player->position).x-=1.5f;
+				energy -= 5.0f;
+				canDash = false;
+
+			}else if(br.pressed&& canDash){
+				(player->position).x+=1.5f;
+				energy -= 5.0f;
+				canDash = false;
+			}
 			player->position+= move.x * frame_right + move.y * frame_forward;
 			enemy->position-=glm::vec3(0.0f,enemySpeed,0.0f);
 			(player->position).x = std::clamp((player->position).x, -3.0f,1.0f);
@@ -212,13 +232,16 @@ void PlayMode::update(float elapsed) {
 			
 		}
 
+		//added keys
 		if (reset.pressed){
 				lost = false;
 				player->position = playerPos;
 				enemy->position = enemyPos;
 				enemySpeed = 0.1f;
 				dodged = 0;
-			}
+		}
+
+		
 
 
 		
@@ -228,6 +251,8 @@ void PlayMode::update(float elapsed) {
 	left.downs = 0;
 	right.downs = 0;
 	reset.downs = 0;
+	bl.downs = 0;
+	br.downs = 0;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -270,7 +295,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		
 		float ofsY = 2.0f / drawable_size.y;
 		float ofsX = 2.0f / drawable_size.y;
-		lines.draw_text("A/D for movement",
+		lines.draw_text("A/D for movement, J/K to dash (5sCD)",
 			glm::vec3(-aspect + 0.1f * H + ofsY, -1.0 + 0.1f * H + ofsY, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
@@ -286,6 +311,16 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			ofsX = 1200.0f / drawable_size.x;
 			ofsY = 1000.0f / drawable_size.y;
 			lines.draw_text("You lose! Press R to restart",
+			glm::vec3(-aspect + 0.1f * H + ofsY, -1.0 + + 0.1f * H + ofsX, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+		}
+
+
+		if (canDash) {
+			ofsX = 2000.0f / drawable_size.x;
+			ofsY = 2200.0f / drawable_size.y;
+			lines.draw_text("You can dash!",
 			glm::vec3(-aspect + 0.1f * H + ofsY, -1.0 + + 0.1f * H + ofsX, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));

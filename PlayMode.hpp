@@ -28,7 +28,7 @@ struct PlayMode : Mode {
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, reset;
+	} left, right, reset, bl, br;
 
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
@@ -55,6 +55,9 @@ struct PlayMode : Mode {
 	glm::quat upper_leg_base_rotation;
 	glm::quat lower_leg_base_rotation;
 	float wobble = 0.0f;
+	float enegyBound = 5.0f;
+	float energy = 0.0f;
+
 	
 	//camera:
 	Scene::Camera *camera = nullptr;
@@ -62,5 +65,6 @@ struct PlayMode : Mode {
 	//constant
 
 	bool lost = false;
+	bool canDash = false;
 
 };
