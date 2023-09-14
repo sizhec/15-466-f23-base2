@@ -12,23 +12,26 @@
 
 #include <random>
 
-GLuint hexapod_meshes_for_lit_color_texture_program = 0;
-Load< MeshBuffer > hexapod_meshes(LoadTagDefault, []() -> MeshBuffer const * {
-	MeshBuffer const *ret = new MeshBuffer(data_path("hexapod.pnct"));
-	hexapod_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
+
+
+GLuint simple_meshes_for_lit_color_texture_program = 0;
+Load< MeshBuffer > simple_meshes(LoadTagDefault, []() -> MeshBuffer const * {
+	MeshBuffer const *ret = new MeshBuffer(data_path("simple.pnct"));
+	simple_meshes_for_lit_color_texture_program = ret->make_vao_for_program(lit_color_texture_program->program);
 	return ret;
 });
 
-Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
-	return new Scene(data_path("hexapod.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
-		Mesh const &mesh = hexapod_meshes->lookup(mesh_name);
+
+Load< Scene > simple_scene(LoadTagDefault, []() -> Scene const * {
+	return new Scene(data_path("simple.scene"), [&](Scene &scene, Scene::Transform *transform, std::string const &mesh_name){
+		Mesh const &mesh = simple_meshes->lookup(mesh_name);
 
 		scene.drawables.emplace_back(transform);
 		Scene::Drawable &drawable = scene.drawables.back();
 
 		drawable.pipeline = lit_color_texture_program_pipeline;
 
-		drawable.pipeline.vao = hexapod_meshes_for_lit_color_texture_program;
+		drawable.pipeline.vao = simple_meshes_for_lit_color_texture_program;
 		drawable.pipeline.type = mesh.type;
 		drawable.pipeline.start = mesh.start;
 		drawable.pipeline.count = mesh.count;
@@ -36,20 +39,38 @@ Load< Scene > hexapod_scene(LoadTagDefault, []() -> Scene const * {
 	});
 });
 
-PlayMode::PlayMode() : scene(*hexapod_scene) {
-	//get pointers to leg for convenience:
-	for (auto &transform : scene.transforms) {
-		if (transform.name == "Hip.FL") hip = &transform;
-		else if (transform.name == "UpperLeg.FL") upper_leg = &transform;
-		else if (transform.name == "LowerLeg.FL") lower_leg = &transform;
-	}
-	if (hip == nullptr) throw std::runtime_error("Hip not found.");
-	if (upper_leg == nullptr) throw std::runtime_error("Upper leg not found.");
-	if (lower_leg == nullptr) throw std::runtime_error("Lower leg not found.");
 
-	hip_base_rotation = hip->rotation;
-	upper_leg_base_rotation = upper_leg->rotation;
-	lower_leg_base_rotation = lower_leg->rotation;
+void PlayMode::saveBegin(Scene::Transform *player1, Scene::Transform *enemy1){
+	playerPos = player1->position;
+	enemyPos = enemy1->position;
+}
+
+PlayMode::PlayMode() : scene(*simple_scene) {
+	//get pointers to leg for convenience:
+	// for (auto &transform : scene.transforms) {
+	// 	if (transform.name == "Hip.FL") hip = &transform;
+	// 	else if (transform.name == "UpperLeg.FL") upper_leg = &transform;
+	// 	else if (transform.name == "LowerLeg.FL") lower_leg = &transform;
+	// }
+	// if (hip == nullptr) throw std::runtime_error("Hip not found.");
+	// if (upper_leg == nullptr) throw std::runtime_error("Upper leg not found.");
+	// if (lower_leg == nullptr) throw std::runtime_error("Lower leg not found.");
+
+	// hip_base_rotation = hip->rotation;
+	// upper_leg_base_rotation = upper_leg->rotation;
+	// lower_leg_base_rotation = lower_leg->rotation;
+
+	player = nullptr;
+	enemy = nullptr;
+	road = nullptr;
+
+	for (auto &transform : scene.transforms) {
+		if (transform.name == "player")  player = &transform;
+		else if (transform.name == "enemy") enemy = &transform;
+		else if (transform.name == "road") road = &transform;
+	}
+
+	saveBegin(player, enemy);
 
 	//get pointer to camera for convenience:
 	if (scene.cameras.size() != 1) throw std::runtime_error("Expecting scene to have exactly one camera, but it has " + std::to_string(scene.cameras.size()));
@@ -73,9 +94,9 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 			right.downs += 1;
 			right.pressed = true;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_w) {
-			up.downs += 1;
-			up.pressed = true;
+		} else if (evt.key.keysym.sym == SDLK_r) {
+			reset.downs += 1;
+			reset.pressed = true;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_s) {
 			down.downs += 1;
@@ -89,8 +110,8 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		} else if (evt.key.keysym.sym == SDLK_d) {
 			right.pressed = false;
 			return true;
-		} else if (evt.key.keysym.sym == SDLK_w) {
-			up.pressed = false;
+		} else if (evt.key.keysym.sym == SDLK_r) {
+			reset.pressed = false;
 			return true;
 		} else if (evt.key.keysym.sym == SDLK_s) {
 			down.pressed = false;
@@ -119,52 +140,94 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 	return false;
 }
 
+
+bool PlayMode::checkCollision(Scene::Transform *first, Scene::Transform *second){
+	constexpr float size = 0.6f;
+
+	if ((std::abs(first->position.x - second->position.x) <= size) && (std::abs(first->position.y - second->position.y) <= size)){
+		return true;
+	}
+	return false;
+}
+
 void PlayMode::update(float elapsed) {
 
-	//slowly rotates through [0,1):
-	wobble += elapsed / 10.0f;
-	wobble -= std::floor(wobble);
 
-	hip->rotation = hip_base_rotation * glm::angleAxis(
-		glm::radians(5.0f * std::sin(wobble * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 1.0f, 0.0f)
-	);
-	upper_leg->rotation = upper_leg_base_rotation * glm::angleAxis(
-		glm::radians(7.0f * std::sin(wobble * 2.0f * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 0.0f, 1.0f)
-	);
-	lower_leg->rotation = lower_leg_base_rotation * glm::angleAxis(
-		glm::radians(10.0f * std::sin(wobble * 3.0f * 2.0f * float(M_PI))),
-		glm::vec3(0.0f, 0.0f, 1.0f)
-	);
+
+
 
 	//move camera:
 	{
 
 		//combine inputs into a move:
-		constexpr float PlayerSpeed = 30.0f;
+		//constexpr float PlayerSpeed = 30.0f;
 		glm::vec2 move = glm::vec2(0.0f);
-		if (left.pressed && !right.pressed) move.x =-1.0f;
-		if (!left.pressed && right.pressed) move.x = 1.0f;
-		if (down.pressed && !up.pressed) move.y =-1.0f;
-		if (!down.pressed && up.pressed) move.y = 1.0f;
+		if (left.pressed && !right.pressed) move.x =-0.2f;
+		if (!left.pressed && right.pressed) move.x = 0.2f;
 
 		//make it so that moving diagonally doesn't go faster:
-		if (move != glm::vec2(0.0f)) move = glm::normalize(move) * PlayerSpeed * elapsed;
+		if (move != glm::vec2(0.0f)) move = glm::normalize(move) * elapsed;
 
 		glm::mat4x3 frame = camera->transform->make_local_to_parent();
 		glm::vec3 frame_right = frame[0];
 		//glm::vec3 up = frame[1];
 		glm::vec3 frame_forward = -frame[2];
 
-		camera->transform->position += move.x * frame_right + move.y * frame_forward;
+		//camera->transform->position += move.x * frame_right + move.y * frame_forward;
+		
+		enemySpeed += elapsed * 0.01f;
+	    //collision checking
+
+		if (checkCollision(player, enemy)&& !lost){
+			//player->position+= glm::vec3(0.0f,0.0f, 1.0f);
+			lost = true;
+		}
+
+
+		//enemy reset logic
+
+		if(enemy->position.y <= 0.0f){
+
+			// taken from https://stackoverflow.com/questions/686353/random-float-number-generation
+			float r2 = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/4.0f));
+			r2-=3.0f;
+			enemy->position = enemyPos;
+			enemy->position.x = r2;
+			dodged+=1;
+			
+		}
+
+		if (!lost){
+			player->position+= move.x * frame_right + move.y * frame_forward;
+			enemy->position-=glm::vec3(0.0f,enemySpeed,0.0f);
+			(player->position).x = std::clamp((player->position).x, -3.0f,1.0f);
+		}else{
+			if (reset.pressed){
+				lost = false;
+				player->position = playerPos;
+				enemy->position = enemyPos;
+				enemySpeed = 0.1f;
+				dodged = 0;
+			}
+			
+		}
+
+		if (reset.pressed){
+				lost = false;
+				player->position = playerPos;
+				enemy->position = enemyPos;
+				enemySpeed = 0.1f;
+				dodged = 0;
+			}
+
+
+		
 	}
 
 	//reset button press counters:
 	left.downs = 0;
 	right.downs = 0;
-	up.downs = 0;
-	down.downs = 0;
+	reset.downs = 0;
 }
 
 void PlayMode::draw(glm::uvec2 const &drawable_size) {
@@ -201,14 +264,32 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		));
 
 		constexpr float H = 0.09f;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
-			glm::vec3(-aspect + 0.1f * H, -1.0 + 0.1f * H, 0.0),
-			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
-			glm::u8vec4(0x00, 0x00, 0x00, 0x00));
-		float ofs = 2.0f / drawable_size.y;
-		lines.draw_text("Mouse motion rotates camera; WASD moves; escape ungrabs mouse",
-			glm::vec3(-aspect + 0.1f * H + ofs, -1.0 + 0.1f * H + ofs, 0.0),
+
+
+		
+		
+		float ofsY = 2.0f / drawable_size.y;
+		float ofsX = 2.0f / drawable_size.y;
+		lines.draw_text("A/D for movement",
+			glm::vec3(-aspect + 0.1f * H + ofsY, -1.0 + 0.1f * H + ofsY, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+
+
+		ofsY = 2200.0f / drawable_size.y;
+		lines.draw_text(std::string("Dodged: " + std::to_string(dodged)) ,	
+			glm::vec3(-aspect + 0.1f * H + ofsY, -1.0 + + 0.1f * H, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+
+		if (lost) {
+			ofsX = 1200.0f / drawable_size.x;
+			ofsY = 1000.0f / drawable_size.y;
+			lines.draw_text("You lose! Press R to restart",
+			glm::vec3(-aspect + 0.1f * H + ofsY, -1.0 + + 0.1f * H + ofsX, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+		}
+		
 	}
 }

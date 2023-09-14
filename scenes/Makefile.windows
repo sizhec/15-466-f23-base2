@@ -3,11 +3,11 @@ BLENDER="C:\Program Files\Blender Foundation\Blender 3.6\blender.exe"
 DIST=../dist
 
 all : \
-    $(DIST)/simpleRoad.scene \
-    $(DIST)/simpleRoad.pnct \
+    $(DIST)/simple.scene \
+    $(DIST)/simple.pnct \
 
-$(DIST)/simpleRoad.scene : simpleRoad.blend export-scene.py
-    $(BLENDER) --background --python export-scene.py -- "simpleRoad.blend:Main" "$(DIST)/simpleRoad.scene"
+$(DIST)/simple.scene : simple.blend export-scene.py
+    $(BLENDER) --background --python export-scene.py -- "simple.blend:Main" "$(DIST)/simple.scene"
 
-$(DIST)/simpleRoad.pnct : simpleRoad.blend export-meshes.py
-    $(BLENDER) --background --python export-meshes.py -- "simpleRoad.blend:Main" "$(DIST)/simpleRoad.pnct" 
+$(DIST)/simple.pnct : simple.blend export-meshes.py
+    $(BLENDER) --background --python export-meshes.py -- "simple.blend:Main" "$(DIST)/simple.pnct" 

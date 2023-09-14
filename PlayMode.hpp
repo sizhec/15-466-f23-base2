@@ -3,6 +3,7 @@
 #include "Scene.hpp"
 
 #include <glm/glm.hpp>
+#include "gl_errors.hpp"
 
 #include <vector>
 #include <deque>
@@ -16,21 +17,40 @@ struct PlayMode : Mode {
 	virtual void update(float elapsed) override;
 	virtual void draw(glm::uvec2 const &drawable_size) override;
 
+	//helped i have 
+
+	bool PlayMode::checkCollision(Scene::Transform *first, Scene::Transform *second);
+	void PlayMode::saveBegin(Scene::Transform *player, Scene::Transform *enemy);
+
 	//----- game state -----
 
 	//input tracking:
 	struct Button {
 		uint8_t downs = 0;
 		uint8_t pressed = 0;
-	} left, right, down, up;
+	} left, right, down, reset;
 
 	//local copy of the game scene (so code can change it during gameplay):
 	Scene scene;
 
 	//hexapod leg to wobble:
-	Scene::Transform *hip = nullptr;
-	Scene::Transform *upper_leg = nullptr;
-	Scene::Transform *lower_leg = nullptr;
+	// Scene::Transform *hip = nullptr;
+	// Scene::Transform *upper_leg = nullptr;
+	// Scene::Transform *lower_leg = nullptr;
+
+
+	Scene::Transform *road = nullptr;
+	Scene::Transform *player = nullptr;
+	Scene::Transform *enemy = nullptr;
+
+	glm::vec3 playerPos = glm::vec3(0.0f, 0.0f,0.0f);
+	glm::vec3 enemyPos = glm::vec3(0.0f, 0.0f,0.0f);
+
+
+	float enemySpeed = 0.1f;
+
+	int dodged = 0;
+
 	glm::quat hip_base_rotation;
 	glm::quat upper_leg_base_rotation;
 	glm::quat lower_leg_base_rotation;
@@ -38,5 +58,9 @@ struct PlayMode : Mode {
 	
 	//camera:
 	Scene::Camera *camera = nullptr;
+
+	//constant
+
+	bool lost = false;
 
 };
