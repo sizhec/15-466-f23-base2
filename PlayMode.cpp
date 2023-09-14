@@ -126,7 +126,7 @@ bool PlayMode::handle_event(SDL_Event const &evt, glm::uvec2 const &window_size)
 		}
 	} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 		if (SDL_GetRelativeMouseMode() == SDL_FALSE) {
-			SDL_SetRelativeMouseMode(SDL_TRUE);
+			//SDL_SetRelativeMouseMode(SDL_TRUE);
 			return true;
 		}
 	} else if (evt.type == SDL_MOUSEMOTION) {
@@ -158,9 +158,6 @@ bool PlayMode::checkCollision(Scene::Transform *first, Scene::Transform *second)
 }
 
 void PlayMode::update(float elapsed) {
-
-
-
 
 
 	//move camera:

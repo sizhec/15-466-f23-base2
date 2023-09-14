@@ -3,7 +3,6 @@
 #include "Scene.hpp"
 
 #include <glm/glm.hpp>
-#include "gl_errors.hpp"
 
 #include <vector>
 #include <deque>

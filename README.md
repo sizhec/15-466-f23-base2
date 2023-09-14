@@ -1,8 +1,9 @@
-# (TODO: your game's title)
+# Dodge the ball: Lite
 
-Author: (TODO: your name)
+Author: Sizhe Chen
 
-Design: (TODO: In two sentences or fewer, describe what is new and interesting about your game.)
+Design: A simple game where you need to dodge the ball. 
+
 
 Screen Shot:
 
@@ -10,6 +11,8 @@ Screen Shot:
 
 How To Play:
 
-(TODO: describe the controls and (if needed) goals/strategy.)
+Dodge the ball using A/D and dash with J/K. The ball will get faster! Press R to reset!
+
+Note: Sorry for the simplicity, had a hard time dealing with blender.
 
 This game was built with [NEST](NEST.md).
