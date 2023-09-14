@@ -206,7 +206,7 @@ void PlayMode::update(float elapsed) {
 
 		if (!lost){
 			energy+= elapsed;
-			canDash = (energy > 5.0f);
+			canDash = (energy >= 5.0f);
 			
 			if (bl.pressed && canDash){
 				(player->position).x-=1.5f;
@@ -221,6 +221,7 @@ void PlayMode::update(float elapsed) {
 			player->position+= move.x * frame_right + move.y * frame_forward;
 			enemy->position-=glm::vec3(0.0f,enemySpeed,0.0f);
 			(player->position).x = std::clamp((player->position).x, -3.0f,1.0f);
+			energy = std::clamp(energy, 0.0f,5.0f);
 		}else{
 			if (reset.pressed){
 				lost = false;
@@ -295,7 +296,7 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 		
 		float ofsY = 2.0f / drawable_size.y;
 		float ofsX = 2.0f / drawable_size.y;
-		lines.draw_text("A/D for movement, J/K to dash (5sCD)",
+		lines.draw_text("A/D for movement, J/K to dash (5s)",
 			glm::vec3(-aspect + 0.1f * H + ofsY, -1.0 + 0.1f * H + ofsY, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
@@ -311,6 +312,15 @@ void PlayMode::draw(glm::uvec2 const &drawable_size) {
 			ofsX = 1200.0f / drawable_size.x;
 			ofsY = 1000.0f / drawable_size.y;
 			lines.draw_text("You lose! Press R to restart",
+			glm::vec3(-aspect + 0.1f * H + ofsY, -1.0 + + 0.1f * H + ofsX, 0.0),
+			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
+			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
+		}
+
+		{
+			ofsX = 2200.0f / drawable_size.x;
+			ofsY = 2300.0f / drawable_size.y;
+			lines.draw_text(std::to_string(5.0f- energy) + "s",
 			glm::vec3(-aspect + 0.1f * H + ofsY, -1.0 + + 0.1f * H + ofsX, 0.0),
 			glm::vec3(H, 0.0f, 0.0f), glm::vec3(0.0f, H, 0.0f),
 			glm::u8vec4(0xff, 0xff, 0xff, 0x00));
